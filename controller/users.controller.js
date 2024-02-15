@@ -1,5 +1,6 @@
-const db = require("../db/db");
+const { users } = require("../db/db");
 const util = require("../db/util");
+const session = require("../session/session");
 
 module.exports = {
   async registerUser(req, res) {
@@ -9,7 +10,7 @@ module.exports = {
     return res.status(201).json({
       success: true,
       msg: "User registration successful",
-      data: await db.users.create(req.body),
+      data: await users.create(req.body),
       //{ ...req.body, id: 1 },
     });
   },
@@ -23,7 +24,7 @@ module.exports = {
         .json({ success: false, msg: "Invalid login detail." });
     }
 
-    const user = await db.users.findBy("email", email);
+    const user = await users.findBy("email", email);
     if (!user) {
       return res
         .status(422)
@@ -35,6 +36,11 @@ module.exports = {
         .status(422)
         .json({ success: false, msg: "Invalid login detail." });
     }
+
+    const token = util.generateRandomId();
+
+    session.putUserId(token, user.id);
+
     return res.status(200).json({
       success: true,
       msg: "Login successful",
@@ -45,10 +51,25 @@ module.exports = {
           email: user.email,
         },
         auth_token: {
-          token: util.generateRandomId(),
+          token,
           expires_after: Date.now() + 60 * 60 * 1000,
         },
       },
     });
+  },
+
+  async self(req, res) {
+    const user = await users.findBy("id", req.userId);
+    delete user.password;
+    return res.status(200).json({ success: true, data: user });
+  },
+
+  async getOneUser(req, res) {
+    const user = await users.findBy("id", req.params.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, msg: "Not found." });
+    }
+    delete user.password;
+    return res.status(200).json({ success: true, data: user });
   },
 };

@@ -9,11 +9,13 @@ const express = require("express");
 const app = express();
 const { createServer } = require("http");
 const port = process.env.PORT || 3000;
-const userRouter = require("./routers/user-router");
+const userRouter = require("./routers/user.router");
+const postRouter = require("./routers/post.router");
 
 app.use(express.json());
 
 app.use("/users", userRouter);
+app.use("/posts", postRouter);
 
 app.use((_req, _res, next) => {
   const error = new Error("Not Found");
